@@ -116,10 +116,12 @@ const CustomerFormSchema = z.object({
   imageUrl: z
     .string()
     .refine(
-      (url) => url.startsWith('https://avatars.githubusercontent.com/u/'),
+      (url) =>
+        url.startsWith('https://avatars.githubusercontent.com/u/') ||
+        url.startsWith('/customers/'),
       {
         message:
-          'Please enter a valid image URL starting with https://avatars.githubusercontent.com/u/...',
+          'Please enter a valid image URL starting with https://avatars.githubusercontent.com/u/... or /customers/',
       },
     ),
 });
@@ -164,6 +166,45 @@ export async function createCustomer(
   } catch (error) {
     return {
       message: 'Database Error: Failed to Create Customer.',
+    };
+  }
+
+  revalidatePath('/dashboard/customers');
+  redirect('/dashboard/customers');
+}
+
+const UpdateCustomer = CustomerFormSchema.omit({ id: true });
+
+export async function updateCustomer(
+  id: string,
+  prevState: CustomerState,
+  formData: FormData,
+) {
+  const rawFormData = {
+    name: formData.get('name'),
+    email: formData.get('email'),
+    imageUrl: formData.get('imageUrl'),
+  };
+
+  const validatedFields = UpdateCustomer.safeParse(rawFormData);
+  if (!validatedFields.success) {
+    return {
+      errors: validatedFields.error.flatten().fieldErrors,
+      message: 'Missing fields. Failed to update customer.',
+    };
+  }
+
+  const { name, email, imageUrl } = validatedFields.data;
+
+  try {
+    await sql`
+      UPDATE customers
+      SET name = ${name}, email = ${email}, image_url = ${imageUrl}
+      WHERE id = ${id}
+    `;
+  } catch (error) {
+    return {
+      message: 'Database Error: Failed to update customer.',
     };
   }
 
