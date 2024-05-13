@@ -212,6 +212,17 @@ export async function updateCustomer(
   redirect('/dashboard/customers');
 }
 
+export async function deleteCustomer(customer_id: string) {
+  try {
+    await sql`DELETE FROM invoices WHERE customer_id = ${customer_id}`;
+    await sql`DELETE FROM customers WHERE id = ${customer_id}`;
+    // return { message: 'Deleted Customer.' };
+  } catch (error) {
+    return { message: 'Database Error: Failed to Delete Customer.' };
+  }
+  revalidatePath('/dashboard/customers');
+}
+
 export async function authenticate(
   prevState: string | undefined,
   formData: FormData,
@@ -230,3 +241,4 @@ export async function authenticate(
     throw error;
   }
 }
+// https://avatars.githubusercontent.com/u/15690145
